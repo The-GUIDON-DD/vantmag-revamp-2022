@@ -543,6 +543,8 @@ function get_random_articles( WP_REST_Request $request ) {
 
             // Fetch the featured image URL (falls back to false if none exists)
             $featured_image = get_post_thumbnail_id($post_id);
+            // This will be used instead of featured_image later on but I need to adjust the types on the frontend along with the
+            // other REST API endpoints
             $featured_image_url = $featured_image ? wp_get_attachment_image_url( $featured_image, 'thumbnail' ) : null;
 
             $categories = array();
@@ -578,7 +580,7 @@ function get_random_articles( WP_REST_Request $request ) {
                 'excerpt' => wp_strip_all_tags(get_the_excerpt()),
                 'categories' => $categories,
                 'authors' => $authors,
-                'featured_image' => $featured_image_url,
+                'featured_image' => $featured_image,
             );
         }
         wp_reset_postdata();
