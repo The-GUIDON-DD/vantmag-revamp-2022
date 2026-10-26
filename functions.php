@@ -503,4 +503,86 @@ function vantmag_filter_content($raw_content){
   return $html;
 }
 
+add_action( 'rest_api_init', function () {
+    register_rest_route( 'custom/v1', '/random-articles/', array(
+        'methods'             => 'GET',
+        'callback'            => 'get_random_articles',
+        'permission_callback' => '__return_true', // Public endpoint
+        'args'                => array(
+            'per_page' => array(
+                'default'           => 3,
+                'sanitize_callback' => 'absint',
+                'validate_callback' => function($param, $request, $key) {
+                    return is_numeric($param);
+                }
+            ),
+        ),
+    ) );
+} );
+
+function get_random_articles( WP_REST_Request $request ) {
+    // Get the per_page value from the query parameter
+    $per_page = $request->get_param( 'per_page' );
+
+    $args = array(
+        'post_type'      => 'post',
+        'post_status'    => 'publish',
+        'posts_per_page' => $per_page,
+        'orderby'        => 'rand',
+    );
+
+    $query = new WP_Query( $args );
+    $posts = array();
+
+    if ( $query->have_posts() ) {
+        while ( $query->have_posts() ) {
+            $query->the_post();
+            
+
+            $post_id = get_the_ID();
+
+            // Fetch the featured image URL (falls back to false if none exists)
+            $featured_image = get_post_thumbnail_id($post_id);
+
+            $categories = array();
+            $category_data = get_the_category($post_id);
+
+            if (!empty($category_data)) {
+              foreach ($category_data as $category) {
+                $categories[] = array(
+                  'id' => $category->term_id,
+                  'name' => $category->name,
+                  'slug' => $category->slug
+                );
+              }
+            }
+
+            $authors = array();
+
+            // Fetch multiple authors of article -- requires PublishPress Authors Plugin
+            if (function_exists('get_multiple_authors')) {
+              $ppma_authors = get_multiple_authors($post_id);
+              foreach ($ppma_authors as $author) {
+                $authors[] = array(
+                  'id' => $author->term_id,
+                  'display_name' => $author->display_name,
+                  'slug' => $author->slug
+                );
+              }
+            }
+
+            $posts[] = array(
+                'id'             => get_the_ID(),
+                'title'          => get_the_title(),
+                'excerpt' => get_the_excerpt(),
+                'categories' => $categories,
+                'authors' => $authors,
+                'featured_image' => $featured_image ? $featured_image : null,
+            );
+        }
+        wp_reset_postdata();
+    }
+
+    return rest_ensure_response( $posts );
+}
 ?>
