@@ -543,6 +543,7 @@ function get_random_articles( WP_REST_Request $request ) {
 
             // Fetch the featured image URL (falls back to false if none exists)
             $featured_image = get_post_thumbnail_id($post_id);
+            $featured_image_url = $featured_image ? wp_get_attachment_image_url( $featured_image, 'thumbnail' ) : null;
 
             $categories = array();
             $category_data = get_the_category($post_id);
@@ -577,7 +578,7 @@ function get_random_articles( WP_REST_Request $request ) {
                 'excerpt' => wp_strip_all_tags(get_the_excerpt()),
                 'categories' => $categories,
                 'authors' => $authors,
-                'featured_image' => $featured_image ? $featured_image : null,
+                'featured_image' => $featured_image_url,
             );
         }
         wp_reset_postdata();
