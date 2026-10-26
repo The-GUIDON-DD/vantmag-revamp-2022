@@ -513,7 +513,7 @@ add_action( 'rest_api_init', function () {
                 'default'           => 3,
                 'sanitize_callback' => 'absint',
                 'validate_callback' => function($param, $request, $key) {
-                    return is_numeric($param);
+                    return is_numeric($param) && intval($param) > 0;
                 }
             ),
         ),
@@ -574,7 +574,7 @@ function get_random_articles( WP_REST_Request $request ) {
             $posts[] = array(
                 'id'             => get_the_ID(),
                 'title'          => get_the_title(),
-                'excerpt' => get_the_excerpt(),
+                'excerpt' => wp_strip_all_tags(get_the_excerpt()),
                 'categories' => $categories,
                 'authors' => $authors,
                 'featured_image' => $featured_image ? $featured_image : null,
