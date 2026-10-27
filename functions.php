@@ -503,6 +503,9 @@ function vantmag_filter_content($raw_content){
   return $html;
 }
 
+
+add_filter( 'rest_menu_read_access', '__return_true' );
+
 add_action( 'rest_api_init', function () {
     register_rest_route( 'custom/v1', '/random-articles/', array(
         'methods'             => 'GET',
@@ -510,6 +513,7 @@ add_action( 'rest_api_init', function () {
         'permission_callback' => '__return_true', // Public endpoint
         'args'                => array(
             'per_page' => array(
+                'required' => false,
                 'default'           => 3,
                 'sanitize_callback' => 'absint',
                 'validate_callback' => function($param, $request, $key) {
@@ -543,6 +547,8 @@ function get_random_articles( WP_REST_Request $request ) {
 
             // Fetch the featured image URL (falls back to false if none exists)
             $featured_image = get_post_thumbnail_id($post_id);
+            // This will be used instead of featured_image later on but I need to adjust the types on the frontend along with the
+            // other REST API endpoints
             $featured_image_url = $featured_image ? wp_get_attachment_image_url( $featured_image, 'thumbnail' ) : null;
 
             $categories = array();
@@ -550,11 +556,7 @@ function get_random_articles( WP_REST_Request $request ) {
 
             if (!empty($category_data)) {
               foreach ($category_data as $category) {
-                $categories[] = array(
-                  'id' => $category->term_id,
-                  'name' => $category->name,
-                  'slug' => $category->slug
-                );
+                $categories[] = $category->term_id;
               }
             }
 
@@ -565,7 +567,7 @@ function get_random_articles( WP_REST_Request $request ) {
               $ppma_authors = get_multiple_authors($post_id);
               foreach ($ppma_authors as $author) {
                 $authors[] = array(
-                  'id' => $author->term_id,
+                  'term_id' => $author->term_id,
                   'display_name' => $author->display_name,
                   'slug' => $author->slug
                 );
@@ -574,11 +576,13 @@ function get_random_articles( WP_REST_Request $request ) {
 
             $posts[] = array(
                 'id'             => get_the_ID(),
-                'title'          => get_the_title(),
-                'excerpt' => wp_strip_all_tags(get_the_excerpt()),
+                'title'          => array('rendered'=>get_the_title()),
+                'slug' => get_post_field('post_name'),
+                'date' => get_the_date('Y-m-d\TH:i:s', false, $post_id), // local date time of post
+                'excerpt' => array('rendered'=>wp_strip_all_tags(get_the_excerpt())),
                 'categories' => $categories,
                 'authors' => $authors,
-                'featured_image' => $featured_image_url,
+                'featured_media' => $featured_image,
             );
         }
         wp_reset_postdata();
